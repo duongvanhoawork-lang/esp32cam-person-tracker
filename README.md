@@ -7,7 +7,7 @@
 
 An advanced spatial analytics and positioning research repository that utilizes Wi-Fi **Channel State Information (CSI)** extracted from ESP32-CAM modules to locate and track human subjects within a 3x3m grid using a deep learning **Transformer** architecture.
 
-![ESP32-CAM CSI Person Tracker Demo](./7920284493096-ezgif.com-video-to-gif-converter.gif)
+![ESP32-CAM CSI Person Tracker Demo](./demo_landscape.gif)
 
 > [!NOTE]
 > This is a **Research & Documentation Repository** linking back to the private core implementation repository. The executable scripts in this repository have been replaced with descriptive algorithmic blueprints and structural explanations to protect proprietary logic, while preserving all environment setups and execution commands.

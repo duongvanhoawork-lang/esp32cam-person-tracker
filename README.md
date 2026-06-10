@@ -115,6 +115,6 @@ python 3_realtime_predict.py
 
 ## 🧠 Live Predictor Decision Tree
 During real-time evaluation, the predictor uses dual confidence thresholds to guarantee tracking reliability:
-* **CONF_OUT_OF_ZONE = 0.40**: If the top-1 class probability is less than 40%, the system flags `"KHÔNG TRONG VÙNG"` (Out of zone).
-* **CONF_BOUNDARY = 0.06**: If the gap between the top-1 and top-2 predictions is less than 6% ($p_1 - p_2 \le 0.06$), the system flags `"GIỮA Ô X và Ô Y"` (Boundary Zone between Cell X and Y).
-* **Absolute Detection**: Otherwise, the system flags `"NẰM TRONG Ô X"` (Inside Cell X).
+* **CONF_OUT_OF_ZONE = 0.40**: If the top-1 class probability is less than 40%, the system outputs `"OUT OF ZONE"`.
+* **CONF_BOUNDARY = 0.06**: If the gap between the top-1 and top-2 predictions is less than 6% ($p_1 - p_2 \le 0.06$), the system outputs `"BOUNDARY: Cell X & Cell Y"`.
+* **Absolute Detection**: Otherwise, the system outputs `"INSIDE Cell X"`.

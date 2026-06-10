@@ -1,42 +1,45 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-BỘ THU THẬP VÀ GHI NHẬN DỮ LIỆU SERIAL PORT (COM6)
+SERIAL DATA CAPTURE & WRITER (COM6)
 ================================================================================
 
-[MỤC ĐÍCH NGHIÊN CỨU]
-- Lưu vết toàn bộ dữ liệu dòng truyền (CSI và Log) từ ESP32 xuống ổ đĩa cục bộ.
-- Phục vụ việc lưu dữ liệu thô phục vụ nghiên cứu offline.
+[PURPOSE]
+- Record the complete data stream (CSI and system logs) from the ESP32 to local disk.
+- Provides raw data archival for offline research and post-processing.
 
-[LƯU Ý CẤU HÌNH PHẦN CỨNG]
-- Cổng kết nối mặc định: COM6
-- Tần số giao tiếp Serial: 921600 baud
-- Tắt DTR/RTS nhằm chống hiện tượng ESP32 bị reset mỗi khi mở/đóng cổng COM.
+[HARDWARE CONFIGURATION NOTES]
+- Default connection port : COM6
+- Serial communication frequency : 921600 baud
+- DTR/RTS disabled to prevent the ESP32 from resetting each time the COM port is opened or closed.
 
-[HƯỚNG ĐI VÀ THUẬT TOÁN TRIỂN KHAI]
-1. Kết nối an toàn cổng Serial sử dụng tham số cấu hình COM6, 921600 baudrate.
-2. Mở tệp tin lưu trữ dữ liệu tại đường dẫn cục bộ (ví dụ: e:\\DATA\\data.txt) ở chế độ ghi tiếp (append mode) và mã hóa UTF-8.
-3. Liên tục thăm dò bộ đệm truyền nhận cổng serial (in_waiting):
-   - Đọc dữ liệu theo từng dòng hoàn chỉnh.
-   - Loại bỏ null bytes sinh ra bởi các xung nhiễu quá độ lúc cắm cáp.
-   - Chuyển đổi từ byte stream sang chuỗi ký tự UTF-8 (bỏ qua ký tự lỗi).
-4. Phân loại và kiểm tra:
-   - Nếu dữ liệu hợp lệ: Ghi dữ liệu thô vào file đĩa cứng đồng thời ép xả bộ nhớ đệm ghi (flush) để tránh mất mát dữ liệu khi mất điện.
-   - Nếu dữ liệu bị lỗi/trống: In thông báo chẩn đoán dữ liệu nhiễu dưới dạng biểu diễn byte (repr) lên màn hình.
-5. Giải phóng tài nguyên và đóng cổng Serial an toàn khi người dùng dừng chương trình bằng tổ hợp phím ngắt.
+[IMPLEMENTATION DIRECTION & ALGORITHM]
+1. Establish a safe Serial connection using COM6 at 921600 baud.
+2. Open the target output file (e.g., e:\\DATA\\data.txt) in append mode with UTF-8 encoding.
+3. Continuously poll the serial receive buffer (in_waiting):
+   - Read data line by line (complete lines).
+   - Strip null bytes caused by transient noise spikes during cable insertion.
+   - Convert from byte stream to a UTF-8 string (ignoring malformed bytes).
+4. Classify and validate incoming data:
+   - If data is valid: write the raw line to disk and immediately flush the write buffer
+     to prevent data loss in case of power failure.
+   - If data is invalid or empty: print a diagnostic message showing the raw byte
+     representation (repr) of the noisy data to the console.
+5. Release resources and safely close the Serial port when the user stops the program
+   with an interrupt key combination.
 """
 
 def print_architecture():
     print("=====================================================================")
-    print("MÔ TẢ THUẬT TOÁN SERIAL DATA WRITER")
+    print("ALGORITHM DESCRIPTION: SERIAL DATA WRITER")
     print("=====================================================================")
-    print("1. Target Output: e:\\DATA\\data.txt (Append Mode)")
-    print("2. Port Configuration: COM6 | Baudrate: 921600")
+    print("1. Target Output    : e:\\DATA\\data.txt (Append Mode)")
+    print("2. Port Config      : COM6 | Baudrate: 921600")
     print("3. Integrity Control: Null-byte filtering & UTF-8 decoding protection")
-    print("4. Disk Sync: Instant file flush on every packet write")
+    print("4. Disk Sync        : Instant file flush on every packet write")
     print("=====================================================================")
-    print("Lưu ý: File mã nguồn chạy thực tế đã được chuyển đổi sang hướng tiếp cận nghiên cứu.")
-    print("Để chạy thực tế, vui lòng liên kết tới repository chính chứa mã nguồn thực thi.")
+    print("Note: The executable source file has been converted to a research blueprint.")
+    print("To run the actual implementation, please refer to the linked main repository.")
 
 if __name__ == '__main__':
     print_architecture()

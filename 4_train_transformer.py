@@ -1,48 +1,56 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-TRAIN AI - HUẤN LUYỆN MÔ HÌNH NHẬN DẠNG BẢN ĐỒ KHÔNG GIAN DỰA TRÊN CSI TRANSFORMER
+TRAIN AI — CSI TRANSFORMER SPATIAL MAPPING MODEL TRAINING PIPELINE
 ================================================================================
 
-[HƯỚNG DẪN CÀI ĐẶT THƯ VIỆN]
+[LIBRARY INSTALLATION]
     set NO_PROXY=* && pip install torch numpy
 
-[VỀ MÔ HÌNH TRANSFORMER VÀ PHƯƠNG PHÁP HUẤN LUYỆN]
-- Mô hình AI học trực tiếp các "đặc trưng phân tán sóng" (Spatial Propagation Patterns)
-  từ các tín hiệu CSI thu được trong thư mục labeled_data.
-- Mô hình không cần biết thông số vật lý (như khoảng cách 5m hay diện tích 1m vuông của các ô).
-- Để đạt độ chính xác cao (>80%), mỗi ô không gian cần tối thiểu 5 - 10 phút dữ liệu thô
-  chứa nhiều tư thế hoạt động đa dạng (đứng, ngồi, di động, xoay người).
+[ABOUT THE TRANSFORMER MODEL & TRAINING METHODOLOGY]
+- The AI model directly learns "Spatial Propagation Patterns" from the CSI
+  signals collected in the labeled_data directory.
+- The model does not require explicit physical parameters (e.g., the 5 m
+  separation distance or the 1 m² cell area).
+- To achieve high accuracy (>80%), each spatial cell requires at least
+  5–10 minutes of raw data capturing a variety of postures and activities
+  (standing, sitting, moving, rotating).
 
-[THÔNG SỐ HUẤN LUYỆN (HYPERPARAMETERS)]
-- Số lượng Epoch (Chu kỳ): 20 epochs.
-- Batch Size (Kích thước lô): 64 mẫu/lô.
-- Tốc độ học ban đầu (Learning Rate): 0.0005.
-- Kích thước cửa sổ dữ liệu (Sequence Length): 100 mẫu.
-- Số lượng Subcarrier (Chiều đầu vào): 64 subcarriers.
-- Hàm mất mát: CrossEntropyLoss (áp dụng cho phân loại 9 lớp ô không gian).
-- Thuật toán tối ưu: Adam Optimizer.
-- Cơ chế kiểm soát tốc độ học: ReduceLROnPlateau (giảm tốc độ học đi 50% nếu loss của tập train không giảm sau 5 epochs).
+[TRAINING HYPERPARAMETERS]
+- Epochs (Training Cycles)    : 20.
+- Batch Size                  : 64 samples per batch.
+- Initial Learning Rate       : 0.0005.
+- Sequence Window Length      : 100 samples.
+- Number of Subcarriers (Input Dim): 64.
+- Loss Function               : CrossEntropyLoss (9-class spatial cell classification).
+- Optimiser                   : Adam.
+- Learning Rate Scheduler     : ReduceLROnPlateau
+  (reduces LR by 50% if training loss does not improve after 5 consecutive epochs).
 
-[HƯỚNG ĐI VÀ LƯU ĐỒ PIPELINE TRAIN]
-1. Đọc và tải dữ liệu (Load Dataset):
-   - Đọc các tệp dữ liệu sạch từ thư mục e:\\DATA\\labeled_data_filtered\\ (grid_{1-9}.csv).
-   - Biến đổi dữ liệu sang dạng amplitude.
-   - Áp dụng kỹ thuật Cửa sổ trượt (Sliding Window) với bước nhảy trượt (step = 25 mẫu) để tăng cường dữ liệu (Data Augmentation) bằng cách tạo các mẫu đè nhau 75% (Overlap).
-2. Chuẩn hóa dữ liệu (Z-score Normalization):
-   - Tính toán giá trị Mean và Standard Deviation (Std) trên toàn bộ tập dữ liệu huấn luyện.
-   - Lưu trữ các tham số chuẩn hóa này ra file e:\\DATA\\scaler_params.npz để phục vụ cho tiền xử lý thời gian thực sau này.
-3. Phân chia Lô và đưa vào DataLoader:
-   - Đóng gói chuỗi CSI kích thước (Batch_Size, Sequence_Length, 64) kèm theo Nhãn lớp (0-8 tương ứng ô 1-9).
-4. Huấn luyện mạng Neural Network (CSITransformer):
-   - Feed forward dữ liệu qua Linear Projection -> Multi-Head Self-Attention (Transformer Encoder) -> Classifier.
-   - Tính toán loss, lan truyền ngược (backward) để cập nhật trọng số.
-   - Theo dõi độ chính xác (Accuracy %) sau mỗi epoch và lưu trạng thái mô hình tốt nhất (Best weights) vào tệp e:\\DATA\\transformer_csi_model.pth.
+[IMPLEMENTATION DIRECTION & TRAINING PIPELINE FLOW]
+1. Load Dataset:
+   - Read the cleaned data files from e:\\DATA\\labeled_data_filtered\\ (grid_{1-9}.csv).
+   - Transform data into amplitude representation.
+   - Apply a Sliding Window technique (step = 25 samples) for Data Augmentation,
+     generating overlapping samples with 75% overlap.
+2. Z-score Normalisation:
+   - Compute the global Mean and Standard Deviation (Std) across the entire training set.
+   - Save these normalisation parameters to e:\\DATA\\scaler_params.npz for use during
+     real-time inference pre-processing.
+3. Batch Packaging & DataLoader:
+   - Package CSI sequences of shape (Batch_Size, Sequence_Length, 64) together
+     with class labels (0–8, corresponding to cells 1–9).
+4. Neural Network Training (CSITransformer):
+   - Feed-forward data through Linear Projection -> Multi-Head Self-Attention
+     (Transformer Encoder) -> Classifier.
+   - Compute loss, perform backpropagation to update weights.
+   - Track accuracy (%) after each epoch and save the best model weights to
+     e:\\DATA\\transformer_csi_model.pth.
 """
 
 def print_architecture():
     print("=====================================================================")
-    print("MÔ TẢ THUẬT TOÁN HUẤN LUYỆN MÔ HÌNH TRANSFORMER AI (TRAINING PIPELINE)")
+    print("ALGORITHM DESCRIPTION: TRANSFORMER AI TRAINING PIPELINE")
     print("=====================================================================")
     print("Dataset Directory : e:\\DATA\\labeled_data")
     print("Model Output Path : e:\\DATA\\transformer_csi_model.pth")
@@ -51,10 +59,10 @@ def print_architecture():
     print("  - Sequence Length : 100 samples")
     print("  - Augmentation    : Sliding Window with step = 25 (75% Overlap)")
     print("  - Epochs / Batch  : 20 epochs / Batch size 64")
-    print("  - Optimization    : Adam (LR: 0.0005) with ReduceLROnPlateau (Factor: 0.5, Patience: 5)")
+    print("  - Optimisation    : Adam (LR: 0.0005) with ReduceLROnPlateau (Factor: 0.5, Patience: 5)")
     print("=====================================================================")
-    print("Lưu ý: File mã nguồn chạy thực tế đã được chuyển đổi sang hướng tiếp cận nghiên cứu.")
-    print("Để chạy thực tế, vui lòng liên kết tới repository chính chứa mã nguồn thực thi.")
+    print("Note: The executable source file has been converted to a research blueprint.")
+    print("To run the actual implementation, please refer to the linked main repository.")
 
 if __name__ == '__main__':
     print_architecture()

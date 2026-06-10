@@ -1,68 +1,76 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-REAL-TIME PREDICTOR - DỰ ĐOÁN VỊ TRÍ THỜI GIAN THỰC SỬ DỤNG AI TRANSFORMER
+REAL-TIME PREDICTOR — LIVE SPATIAL LOCALISATION USING AI TRANSFORMER
 ================================================================================
 
-[HƯỚNG DẪN CÀI ĐẶT THƯ VIỆN]
+[LIBRARY INSTALLATION]
     set NO_PROXY=* && pip install torch numpy pyserial
 
-[LƯU Ý KHI CHẠY THỰC TẾ]
-- Bộ phát (TX) và bộ thu (RX) phải được cố định cách nhau 5 mét (giống thiết lập lúc huấn luyện).
-- Không gian di chuyển (9 ô vật lý, kích thước 1m x 1m mỗi ô) phải giữ nguyên cấu trúc hình học.
-- Đảm bảo thiết bị di động kết nối Wi-Fi liên tục để giữ luồng truyền nhận CSI ổn định.
+[RUNTIME REQUIREMENTS]
+- The transmitter (TX) and receiver (RX) must be fixed 5 metres apart
+  (identical to the configuration used during training).
+- The physical movement space (9 cells, 1m x 1m each) must preserve the
+  same geometric structure used during data collection.
+- Ensure the mobile device maintains a continuous Wi-Fi connection to keep
+  the CSI transmission stream stable.
 
-[THAM SỐ CẤU HÌNH HỆ THỐNG]
-- Độ dài chuỗi trượt (Sequence Length): 100 mẫu CSI liên tục.
-- Số lượng Subcarrier xử lý: 64 subcarriers.
-- Đường dẫn Model: e:\\DATA\\transformer_csi_model.pth
-- Đường dẫn Scaling: e:\\DATA\\scaler_params.npz (Lưu Mean và Std phục vụ chuẩn hóa Z-score trực tiếp).
+[SYSTEM CONFIGURATION PARAMETERS]
+- Sliding Sequence Length: 100 consecutive CSI samples.
+- Number of Subcarriers processed: 64.
+- Model Path  : e:\\DATA\\transformer_csi_model.pth
+- Scaler Path : e:\\DATA\\scaler_params.npz
+  (stores Mean and Std for direct Z-score normalisation at inference time).
 
-[NGƯỠNG QUYẾT ĐỊNH ĐỘ TIN CẬY (CONFIDENCE LOGIC)]
-1. Ngưỡng Ngoài Vùng (CONF_OUT_OF_ZONE = 0.40):
-   - Nếu xác suất (Probability) của lớp dự đoán cao nhất nhỏ hơn 40%, mô hình sẽ kết luận đối tượng nằm ngoài vùng phủ sóng (Out of zone).
-2. Ngưỡng Ranh Giới (CONF_BOUNDARY = 0.06):
-   - Tính toán hiệu số xác suất giữa lớp cao thứ nhất và lớp cao thứ hai (p1 - p2).
-   - Nếu hiệu số này nhỏ hơn hoặc bằng 6%, hệ thống kết luận đối tượng đang đứng ở ranh giới giữa hai ô không gian này (ví dụ: Giữa ô 2 và ô 3).
-   - Nếu hiệu số lớn hơn 6%, kết luận đối tượng nằm hoàn toàn trong ô có xác suất cao nhất.
+[CONFIDENCE DECISION THRESHOLDS]
+1. Out-of-Zone Threshold (CONF_OUT_OF_ZONE = 0.40):
+   - If the probability of the top-1 predicted class is below 40%, the model
+     concludes the subject is outside the detection coverage zone (Out of Zone).
+2. Boundary Threshold (CONF_BOUNDARY = 0.06):
+   - Computes the probability gap between the top-1 and top-2 predictions (p1 - p2).
+   - If this gap is <= 6%, the system concludes the subject is standing on the
+     boundary between the two cells (e.g., Between Cell 2 and Cell 3).
+   - If the gap is > 6%, the system concludes the subject is fully inside the
+     cell with the highest probability.
 
-[KIẾN TRÚC MẠNG AI TRANSFORMER]
-- Input Layer: Linear projection biến đổi 64 chiều CSI subcarrier lên d_model (128 chiều).
-- Transformer Encoder: 
-  - Gồm 3 lớp Encoder Layer ghép nối tiếp.
-  - Số đầu chú ý (nhead): 8 heads.
-  - Kích thước Feedforward (dim_feedforward): 256.
-  - Dropout: 0.2.
-- Classification Layer:
-  - Input: Trạng thái ẩn của time-step cuối cùng trong sequence (out[:, -1, :]).
-  - Cấu trúc Fully Connected Layers: Linear(128 -> 64) -> ReLU -> Dropout -> Linear(64 -> 9 lớp đầu ra đại diện cho 9 ô).
+[TRANSFORMER AI ARCHITECTURE]
+- Input Layer     : Linear projection mapping 64 CSI subcarrier dimensions to d_model (128).
+- Transformer Encoder:
+    - 3 stacked Encoder Layers.
+    - Number of attention heads (nhead): 8.
+    - Feed-forward size (dim_feedforward): 256.
+    - Dropout: 0.2.
+- Classification Head:
+    - Input: Hidden state of the last time-step in the sequence (out[:, -1, :]).
+    - Fully Connected structure: Linear(128 -> 64) -> ReLU -> Dropout -> Linear(64 -> 9 classes).
 
-[THUẬT TOÁN HỆ THỐNG RUNTIME]
-1. Tải mô hình học máy đã huấn luyện và nạp các tham số Z-score scaler cục bộ.
-2. Mở kết nối cổng Serial COM6 nhận dòng CSI trực tiếp từ ESP32 RX.
-3. Sử dụng cấu trúc hàng đợi (Queue) kiểu trượt (deque) với kích thước tối đa 100 mẫu.
-4. Khi hàng đợi lấp đầy:
-   - Áp dụng Z-score Normalization cho toàn chuỗi dựa trên tham số Mean và Std được nạp sẵn.
-   - Chuyển đổi chuỗi thành Tensor và đẩy vào thiết bị tính toán (CPU/GPU).
-   - Thực thi Feed-forward qua Transformer để lấy phân phối xác suất Softmax.
-   - Áp dụng logic so sánh ngưỡng CONF_OUT_OF_ZONE và CONF_BOUNDARY để in kết quả dự đoán thời gian thực.
-   - Thực hiện cơ chế trượt cửa sổ 50% (loại bỏ 50 mẫu cũ nhất) để chờ loạt mẫu tiếp theo, giảm trễ tính toán.
+[RUNTIME ALGORITHM]
+1. Load the trained machine-learning model and Z-score scaler parameters from disk.
+2. Open the serial port COM6 to receive the live CSI stream from the ESP32 RX device.
+3. Use a sliding deque (queue) with a maximum size of 100 samples.
+4. When the queue is full:
+   - Apply Z-score normalisation to the entire sequence using the pre-loaded Mean and Std.
+   - Convert the sequence to a Tensor and send it to the compute device (CPU/GPU).
+   - Run a forward pass through the Transformer to obtain the Softmax probability distribution.
+   - Apply the CONF_OUT_OF_ZONE and CONF_BOUNDARY threshold logic and print the real-time prediction.
+   - Slide the window by 50% (discard the oldest 50 samples) to wait for the next batch,
+     reducing overall computation latency.
 """
 
 def print_architecture():
     print("=====================================================================")
-    print("MÔ TẢ THUẬT TOÁN HỆ THỐNG DỰ ĐOÁN THỜI GIAN THỰC (REAL-TIME PREDICTOR)")
+    print("ALGORITHM DESCRIPTION: REAL-TIME SPATIAL PREDICTOR")
     print("=====================================================================")
     print("Model Path        : e:\\DATA\\transformer_csi_model.pth")
     print("Scaler Path       : e:\\DATA\\scaler_params.npz")
     print("Decision Logic    :")
-    print("  - If Max Prob < 40% -> Output: 'KHÔNG TRONG VÙNG'")
-    print("  - If (Prob_1 - Prob_2) <= 6% -> Output: 'GIỮA Ô A và Ô B'")
-    print("  - Else -> Output: 'NẰM TRONG Ô A'")
-    print("Sliding Window    : Sequence Length = 100 | Step size = 50 (50% Overlap)")
+    print("  - If Max Prob < 40%              -> Output: 'OUT OF ZONE'")
+    print("  - If (Prob_1 - Prob_2) <= 6%     -> Output: 'BOUNDARY: Cell A & Cell B'")
+    print("  - Else                           -> Output: 'INSIDE Cell A'")
+    print("Sliding Window    : Sequence Length = 100 | Step Size = 50 (50% Overlap)")
     print("=====================================================================")
-    print("Lưu ý: File mã nguồn chạy thực tế đã được chuyển đổi sang hướng tiếp cận nghiên cứu.")
-    print("Để chạy thực tế, vui lòng liên kết tới repository chính chứa mã nguồn thực thi.")
+    print("Note: The executable source file has been converted to a research blueprint.")
+    print("To run the actual implementation, please refer to the linked main repository.")
 
 if __name__ == '__main__':
     print_architecture()

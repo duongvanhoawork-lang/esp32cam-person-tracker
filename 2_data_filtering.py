@@ -1,64 +1,66 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-DATA FILTERING - BỘ LỌC KHỬ NHIỄU VÀ LÀM MƯỢT TÍN HIỆU CSI 4 TẦNG
+DATA FILTERING — 4-STAGE CSI SIGNAL DENOISING & SMOOTHING PIPELINE
 ================================================================================
 
-[HƯỚNG DẪN CÀI ĐẶT THƯ VIỆN]
+[LIBRARY INSTALLATION]
   set NO_PROXY=* && pip install numpy scipy
 
-[MÔ TẢ VÀ THAM SỐ CẤU HÌNH BỘ LỌC]
-  Đọc toàn bộ file dữ liệu thô grid_1.csv ... grid_9.csv trong thư mục e:\\DATA\\labeled_data\\
-  áp dụng chuỗi lọc nhiễu 4 tầng tuần tự, và ghi kết quả ra e:\\DATA\\labeled_data_filtered\\
+[FILTER DESCRIPTION & CONFIGURATION PARAMETERS]
+  Reads all raw data files grid_1.csv ... grid_9.csv from e:\\DATA\\labeled_data\\,
+  applies the 4-stage sequential noise-reduction pipeline,
+  and writes the cleaned results to e:\\DATA\\labeled_data_filtered\\
 
-  Các tầng lọc được áp dụng (theo đúng thứ tự logic):
+  Filter stages applied (in strict logical order):
 
-  1. Hampel Filter (Loại bỏ nhiễu nhọn - Spike / Outlier theo thời gian)
-     - Window Size (Cửa sổ tìm kiếm): 10 mẫu lân cận mỗi bên.
-     - Sigma threshold (Ngưỡng sigma): 2.0.
-     - Cơ chế: Tính toán Median và MAD (Median Absolute Deviation) trong cửa sổ trượt.
-       Nếu giá trị vượt quá ngưỡng sigma * MAD, thay thế nó bằng giá trị Median.
+  1. Hampel Filter (Spike / Temporal Outlier Removal)
+     - Window Size: 10 neighbouring samples on each side.
+     - Sigma threshold: 2.0.
+     - Mechanism: Computes the local Median and MAD (Median Absolute Deviation)
+       within a sliding window. Values exceeding sigma * MAD are replaced with
+       the local Median.
 
-  2. IQR Filter (Bộ lọc phân phối thống kê - Interquartile Range)
-     - IQR Multiplier (Hệ số nhân): 1.5.
-     - Cơ chế: Xác định khoảng biến thiên chuẩn [Q1 - 1.5*IQR, Q3 + 1.5*IQR].
-       Các điểm tín hiệu nằm ngoài khoảng này sẽ bị kẹp (clamp/clip) về biên giới hạn.
+  2. IQR Filter (Statistical Distribution Clamp — Interquartile Range)
+     - IQR Multiplier: 1.5.
+     - Mechanism: Defines the valid range [Q1 - 1.5*IQR, Q3 + 1.5*IQR].
+       Signal points outside this range are clamped to the boundary.
 
-  3. Butterworth Low-Pass Filter (Bộ lọc thông thấp Butterworth)
-     - Cutoff Frequency (Tần số cắt): 0.05 (chuẩn hóa từ 0.0 đến 0.5).
-     - Order (Bậc bộ lọc): Bậc 5 (tạo độ dốc suy hao tần số cao tốt).
-     - Cơ chế: Lọc hai chiều không lệch pha (filtfilt) để triệt tiêu nhiễu tần số cao
-       phát ra từ môi trường và chuyển động không mong muốn.
+  3. Butterworth Low-Pass Filter (LPF)
+     - Cutoff Frequency: 0.05 (normalized, range 0.0 – 0.5).
+     - Filter Order: 5th order (provides good high-frequency roll-off).
+     - Mechanism: Zero-phase bidirectional filtering (filtfilt) to suppress
+       high-frequency noise from the environment and unintended motion.
 
-  4. Savitzky-Golay Filter (Bộ lọc làm mượt giữ đỉnh đặc trưng)
-     - Window Length (Độ dài khung nội suy): 21 mẫu (phải là số lẻ).
-     - Polyorder (Bậc đa thức khớp): Bậc 3.
-     - Cơ chế: Sử dụng phương pháp bình phương tối thiểu để khớp đa thức cục bộ cho tín hiệu,
-       giúp đường cong CSI mượt mà nhưng không làm mất đi các đỉnh/đáy đặc trưng.
+  4. Savitzky-Golay Filter (Peak-Preserving Smoothing)
+     - Window Length: 21 samples (must be odd).
+     - Polynomial Order: 3.
+     - Mechanism: Fits a local polynomial using least-squares regression,
+       producing a smooth CSI curve while preserving characteristic peaks and valleys.
 
-[HƯỚNG ĐI VÀ LƯU ĐỒ XỬ LÝ DỮ LIỆU]
-1. Parse dòng CSI gốc:
-   - Trích xuất mảng amplitude từ chuỗi định dạng raw dạng: CSI_DATA,...[subcarriers]
-   - Tính toán biên độ sóng Amplitude = sqrt(Real^2 + Imag^2) cho từng subcarrier (64 subcarriers).
-2. Xử lý song song ma trận CSI kích thước (N_Samples, 64) qua 4 tầng lọc trên.
-3. Tái cấu trúc (reconstruct) dòng dữ liệu thành định dạng gốc kèm mảng amplitude đã lọc.
-4. Ghi lại dữ liệu sạch ra tệp tương ứng tại thư mục đích.
+[IMPLEMENTATION DIRECTION & DATA PROCESSING FLOW]
+1. Parse raw CSI lines:
+   - Extract the amplitude array from the raw format: CSI_DATA,...[subcarriers]
+   - Compute Amplitude = sqrt(Real^2 + Imag^2) for each subcarrier (64 subcarriers).
+2. Process the CSI matrix of shape (N_Samples, 64) in parallel through all 4 filter stages.
+3. Reconstruct the data stream into the original format with the filtered amplitude array.
+4. Write the cleaned data to the corresponding output file in the target directory.
 """
 
 def print_architecture():
     print("=====================================================================")
-    print("MÔ TẢ THUẬT TOÁN HỆ THỐNG LỌC NHIỄU CSI 4 TẦNG (4-STAGE FILTER PIPELINE)")
+    print("ALGORITHM DESCRIPTION: 4-STAGE CSI DENOISING PIPELINE")
     print("=====================================================================")
     print("Input Directory  : e:\\DATA\\labeled_data")
     print("Output Directory : e:\\DATA\\labeled_data_filtered")
     print("Pipeline Stages  :")
     print("  Stage 1. Hampel Filter     -> Local spike & outlier removal via MAD")
     print("  Stage 2. IQR Clamp Filter  -> Statistical boundary clipping (1.5 * IQR)")
-    print("  Stage 3. Butterworth LPF   -> Phase-preserving low pass filter (Cutoff: 0.05, Order: 5)")
+    print("  Stage 3. Butterworth LPF   -> Phase-preserving low-pass filter (Cutoff: 0.05, Order: 5)")
     print("  Stage 4. Savitzky-Golay    -> Local polynomial smoothing (Window: 21, Poly: 3)")
     print("=====================================================================")
-    print("Lưu ý: File mã nguồn chạy thực tế đã được chuyển đổi sang hướng tiếp cận nghiên cứu.")
-    print("Để chạy thực tế, vui lòng liên kết tới repository chính chứa mã nguồn thực thi.")
+    print("Note: The executable source file has been converted to a research blueprint.")
+    print("To run the actual implementation, please refer to the linked main repository.")
 
 if __name__ == '__main__':
     print_architecture()

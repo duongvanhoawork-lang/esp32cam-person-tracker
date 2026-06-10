@@ -1,45 +1,47 @@
 # -*- coding: utf-8 -*-
 """
 ================================================================================
-CÔNG CỤ THU THẬP DỮ LIỆU CSI CÓ NHÃN (9 Ô PHÂN HOẠCH - 1m x 1m)
+LABELED CSI DATA ACQUISITION TOOL (9-Cell Spatial Grid — 1m x 1m each)
 ================================================================================
 
-[HƯỚNG DẪN CÀI ĐẶT THƯ VIỆN]
-Mở PowerShell hoặc Command Prompt và chạy lệnh sau (nếu bị lỗi proxy hãy copy y hệt):
-$env:NO_PROXY="*"; pip install pyserial
+[LIBRARY INSTALLATION]
+Open PowerShell or Command Prompt and run the following command
+(if you encounter a proxy error, copy the command exactly as shown):
+  $env:NO_PROXY="*"; pip install pyserial
 
-[SƠ ĐỒ BỐ TRÍ THỰC TẾ (Khuyến nghị)]
-- Khoảng cách TX đến RX = 5m.
-- Vùng nhận diện 3x3m, chia làm 9 ô (mỗi ô 1m x 1m).
-- Ô số 5 nằm ở chính giữa (2.5m). Cách TX 1m, cách RX 1m.
+[PHYSICAL LAYOUT (Recommended Setup)]
+- Distance from TX to RX: 5 meters.
+- Detection area: 3x3 m grid divided into 9 cells (each cell is 1m x 1m).
+- Cell 5 is located at the center (2.5 m from both TX and RX).
 
-[HƯỚNG ĐI VÀ THUẬT TOÁN TRIỂN KHAI]
-1. Giao diện lựa chọn vị trí:
-   - Yêu cầu người dùng nhập chỉ số Ô không gian cần thu thập dữ liệu (từ 1 đến 9).
-   - Kiểm tra tính hợp lệ của đầu vào (Grid Index Validation).
-2. Thiết lập thư mục lưu trữ:
-   - Tự động tạo thư mục đích lưu trữ dữ liệu nhãn tại: e:\\DATA\\labeled_data\\
-   - Định dạng tên file lưu trữ tương ứng với từng ô không gian: grid_{grid_num}.csv
-3. Thiết lập kết nối Serial thu nhận dữ liệu:
-   - Mở cổng serial COM6 với baudrate 921600. Tắt DTR/RTS để chống reset mạch.
-4. Vòng lặp thu nhận & Lưu trữ dữ liệu:
-   - Đọc dữ liệu từ bộ đệm. Loại bỏ ký tự null (\x00).
-   - Lọc lọc lọc dữ liệu: Chỉ ghi nhận các dòng bắt đầu bằng ký tự đặc trưng "CSI_DATA".
-   - Định dạng dòng CSI_DATA hợp lệ được ghi trực tiếp vào tệp CSV đích kèm theo lệnh flush() dữ liệu ngay lập tức.
-5. Xử lý ngắt KeyboardInterrupt để lưu file an toàn, đóng cổng serial và thông báo hoàn thành phiên thu thập dữ liệu cho ô hiện hành.
+[IMPLEMENTATION DIRECTION & ALGORITHM]
+1. Cell selection interface:
+   - Prompts the user to enter the spatial cell index to collect data for (1 to 9).
+   - Validates the input (Grid Index Validation).
+2. Storage directory setup:
+   - Automatically creates the target directory for labeled data at: e:\\DATA\\labeled_data\\
+   - Output file naming format per cell: grid_{grid_num}.csv
+3. Serial connection setup for data acquisition:
+   - Opens serial port COM6 at baudrate 921600. DTR/RTS disabled to prevent board reset.
+4. Data acquisition & storage loop:
+   - Reads data from the buffer. Removes null bytes (\\x00).
+   - Filters data: Only records lines that begin with the prefix "CSI_DATA".
+   - Valid CSI_DATA lines are written directly to the target CSV file with an immediate flush().
+5. Handles KeyboardInterrupt to safely save the file, close the serial port,
+   and report the completion of the current data collection session.
 """
 
 def print_architecture():
     print("=====================================================================")
-    print("MÔ TẢ THUẬT TOÁN LABELED CSI DATA ACQUISITION")
+    print("ALGORITHM DESCRIPTION: LABELED CSI DATA ACQUISITION")
     print("=====================================================================")
-    print("1. Workspace Spatial Layout: 3x3 Grid (9 Cells, 1m x 1m each)")
-    print("2. Serial Ingestion: COM6 @ 921600 baud, non-reset configurations")
-    print("3. Target Directory: e:\\DATA\\labeled_data\\grid_{1-9}.csv")
-    print("4. Protocol Filter: Line-start prefix matching on 'CSI_DATA'")
+    print("1. Workspace Spatial Layout : 3x3 Grid (9 Cells, 1m x 1m each)")
+    print("2. Serial Ingestion         : COM6 @ 921600 baud, non-reset configuration")
+    print("3. Target Directory         : e:\\DATA\\labeled_data\\grid_{1-9}.csv")
+    print("4. Protocol Filter          : Line-start prefix matching on 'CSI_DATA'")
     print("=====================================================================")
-    print("Lưu ý: File mã nguồn chạy thực tế đã được chuyển đổi sang hướng tiếp cận nghiên cứu.")
-    print("Để chạy thực tế, vui lòng liên kết tới repository chính chứa mã nguồn thực thi.")
+    print("Note: The executable source file has been converted to a research blueprint.")
+    print("To run the actual implementation, please refer to the linked main repository.")
 
 if __name__ == '__main__':
     print_architecture()

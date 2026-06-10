@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Datasets and local data logs
+*.txt
+*.csv
+/data/
+/labeled_data/
+/labeled_data_filtered/
+
+# Model checkpoints and preprocessed parameters
+*.pth
+*.npz
+
+# Word documents and raw scratch files
+*.docx
+scratch/
+
+# IDE files
+.vscode/
+.idea/

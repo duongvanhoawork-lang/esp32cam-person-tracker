@@ -4,12 +4,16 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Datasets and local data logs
+# Datasets and local data logs (excluded from tracking)
 *.txt
 *.csv
 /data/
 /labeled_data/
 /labeled_data_filtered/
+
+# Sample data — always tracked
+!labeled_data_Ex/
+!labeled_data_Ex/*.csv
 
 # Model checkpoints and preprocessed parameters
 *.pth

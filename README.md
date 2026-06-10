@@ -113,6 +113,32 @@ python 3_realtime_predict.py
 
 ---
 
+## 📂 Sample Dataset (`labeled_data_Ex/`)
+
+This repository includes a complete set of **example labeled CSI recordings** collected under the exact experimental conditions described above (5 m TX–RX separation, 3×3 m grid).
+
+| File | Spatial Cell | Approximate Size |
+|------|-------------|-----------------|
+| `grid_1.csv` | Cell 1 — Top-Left | ~4.4 MB |
+| `grid_2.csv` | Cell 2 — Top-Center | ~4.2 MB |
+| `grid_3.csv` | Cell 3 — Top-Right | ~4.2 MB |
+| `grid_4.csv` | Cell 4 — Middle-Left | ~4.2 MB |
+| `grid_5.csv` | Cell 5 — Center | ~4.2 MB |
+| `grid_6.csv` | Cell 6 — Middle-Right | ~4.3 MB |
+| `grid_7.csv` | Cell 7 — Bottom-Left | ~4.4 MB |
+| `grid_8.csv` | Cell 8 — Bottom-Center | ~4.3 MB |
+| `grid_9.csv` | Cell 9 — Bottom-Right | ~4.4 MB |
+
+### CSV Format
+Each row is a raw `CSI_DATA` packet captured from the ESP32 serial stream. The subcarrier array is stored as complex-number pairs `(Real, Imag)` per subcarrier. The pipeline scripts automatically convert these to amplitudes:
+
+$$\text{Amplitude} = \sqrt{\text{Real}^2 + \text{Imag}^2}$$
+
+> [!TIP]
+> You can use these files as a **drop-in replacement** for your own collected data to quickly prototype the full pipeline (filtering → training → real-time prediction) without needing physical ESP32 hardware.
+
+---
+
 ## 🧠 Live Predictor Decision Tree
 During real-time evaluation, the predictor uses dual confidence thresholds to guarantee tracking reliability:
 * **CONF_OUT_OF_ZONE = 0.40**: If the top-1 class probability is less than 40%, the system outputs `"OUT OF ZONE"`.
